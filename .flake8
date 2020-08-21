@@ -1,0 +1,5 @@
+[flake8]
+# Default line length of black formatter
+max-line-length = 120
+exclude = .git,__pycache__,docs/source/conf.py,old,build,dist,tests/*,src/*/__init__.py
+ignore = E402, W503, E203

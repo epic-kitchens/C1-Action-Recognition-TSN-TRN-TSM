@@ -1,0 +1,64 @@
+modality: Flow
+seed: 42
+
+data:
+  frame_count: 8
+  segment_length: 5  # Number of (u, v) pairs in each segment
+  _root_gulp_dir: ???
+  train_gulp_dir: ${data._root_gulp_dir}/flow_train
+  val_gulp_dir: ${data._root_gulp_dir}/flow_validation
+  test_gulp_dir: ${data._root_gulp_dir}/flow_test
+  worker_count: 8
+  pin_memory: yes
+  preprocessing:
+    # Whether to rescale input from [0, 255] to [0, 1].
+    rescale: yes
+    input_size: 224
+    scale_size: 256
+    mean: [0.5]
+    std: [0.226]  # Mean of imagenet std
+  train_augmentation:
+    multiscale_crop_scales: [1, 0.875, 0.75]
+  test_augmentation:
+    rescale_size: 256
+
+model:
+  type: TSM
+  backbone: resnet50
+  pretrained: kinetics
+  dropout: 0.7
+  partial_bn: yes
+  shift_div: 8
+  non_local: False
+  temporal_pool: False
+
+learning:
+  batch_size: 64
+  optimizer:
+    type: SGD
+    momentum: 0.9
+    weight_decay: 5e-4
+  lr: 0.01
+  lr_scheduler:
+    type: StepLR
+    gamma: 0.1
+    epochs: [20, 40]
+
+trainer:
+  gradient_clip_val: 20
+  max_epochs: 80
+
+  # Write metrics to tensorboard logs every X iterations
+  row_log_interval: 5
+  log_save_interval: 20
+  weights_summary: full
+  benchmark: yes
+  terminate_on_nan: yes
+  distributed_backend: dp
+  # Assuming V100s for batch size
+  gpus: 4
+
+
+defaults:
+  - hydra/job_logging: colorlog
+  - hydra/hydra_logging: colorlog
