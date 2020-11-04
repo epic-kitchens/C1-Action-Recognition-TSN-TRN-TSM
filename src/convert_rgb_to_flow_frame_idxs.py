@@ -32,18 +32,16 @@ def main(args):
         lambda id_: 2020 if len(id_.split("_")[-1]) == 3 else 2018
     )
     columns_to_convert = [c for c in df.columns if c.endswith("frame")]
-    dfs = {year: df[df["year"] == year] for year in [2020, 2018]}
+    year_masks = {year: df["year"] == year for year in [2020, 2018]}
 
-    new_dfs = dict()
-    for year, year_df in dfs.items():
+    for year, year_mask in year_masks.items():
         stride = STRIDES[year]
         for col in columns_to_convert:
-            year_df[col] = convert_rgb_frame_to_flow_frame_idx(year_df[col], stride)
-        new_dfs[year] = year_df
+            df.loc[year_mask, col] = convert_rgb_frame_to_flow_frame_idx(
+                df.loc[year_mask, col], stride
+            )
 
-    new_df = pd.concat(new_dfs.values())
-    new_df = new_df.loc[df.index]
-    new_df.to_pickle(args.labels_out_pkl)
+    df.to_pickle(args.labels_out_pkl)
 
 
 if __name__ == "__main__":
