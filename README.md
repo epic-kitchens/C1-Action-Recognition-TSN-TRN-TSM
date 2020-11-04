@@ -110,13 +110,13 @@ First we need to convert the frame numbers from those for RGB frames to those of
 the flow frames (since in 2018 we extracted optical flow for every other frame).
 
 ```bash
-$ python src/convert_rgb_to_flow_frames_idxs.py \
+$ python src/convert_rgb_to_flow_frame_idxs.py \
     /path/to/EPIC_100_train.pkl \
     EPIC_100_train_flow.pkl
-$ python src/convert_rgb_to_flow_frames_idxs.py \
+$ python src/convert_rgb_to_flow_frame_idxs.py \
     /path/to/EPIC_100_validation.pkl \
     EPIC_100_validation_flow.pkl
-$ python src/convert_rgb_to_flow_frames_idxs.py \
+$ python src/convert_rgb_to_flow_frame_idxs.py \
     /path/to/EPIC_100_test_timestamps.pkl \
     EPIC_100_test_timestamps_flow.pkl
 ```
