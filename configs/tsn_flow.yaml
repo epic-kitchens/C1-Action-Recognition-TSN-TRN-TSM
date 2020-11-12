@@ -47,8 +47,8 @@ trainer:
   max_epochs: 80
 
   # Write metrics to tensorboard logs every X iterations
-  row_log_interval: 5
-  log_save_interval: 20
+  log_every_n_steps: 5
+  flush_logs_every_n_steps: 20
   weights_summary: full
   benchmark: yes
   terminate_on_nan: yes

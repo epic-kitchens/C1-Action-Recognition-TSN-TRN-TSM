@@ -13,8 +13,6 @@ from datasets import EpicVideoDataset
 from datasets import EpicVideoFlowDataset
 from datasets import TsnDataset
 from omegaconf import DictConfig
-from pytorch_lightning import EvalResult
-from pytorch_lightning import TrainResult
 from pytorch_lightning.core.step_result import Result
 from torch import Tensor
 from torch.optim import SGD
@@ -231,24 +229,21 @@ class EpicActionRecognitionSystem(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         step_results = self._step(batch)
 
-        result = TrainResult(step_results["loss"])
-        self.log_metrics(result, step_results, "train")
-        return result
+        self.log_metrics(step_results, "train")
+        return step_results["loss"]
 
     def validation_step(self, batch, batch_idx):
         step_results = self._step(batch)
-        result = EvalResult(checkpoint_on=step_results["loss"])
-        self.log_metrics(result, step_results, "val")
-        return result
+        self.log_metrics(step_results, "val")
+        return step_results["loss"]
 
     def test_step(self, batch, batch_idx):
         data, labels_dict = batch
         outputs = self.forward_tasks(data)
 
-        result = EvalResult()
         filename = self.cfg.get("test.results_path", "./predictions.pt")
 
-        result.write_dict(
+        self.write_dict(
             {
                 "verb_output": outputs["verb"],
                 "noun_output": outputs["noun"],
