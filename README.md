@@ -15,7 +15,7 @@ This repo contains:
 - Pretrained models on the EPIC-Kitchens 100 validation set
 
 - For TBN see https://github.com/ekazakos/temporal-binding-network
-- For SlowFast see https://github.com/epic-kitchens/AViLSlowFast (to be released)
+- For SlowFast see https://github.com/epic-kitchens/epic-kitchens-slowfast
 
 ## Table of Contents
 * [Environment setup](#environment-setup)
