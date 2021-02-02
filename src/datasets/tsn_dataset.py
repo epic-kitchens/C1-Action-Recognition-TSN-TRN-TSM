@@ -127,6 +127,8 @@ class TsnDataset(torch.utils.data.Dataset):
         def is_scalar(v: Any):
             if isinstance(v, (tuple, list)):
                 return False
+            if v is None:
+                return False 
             return True
 
         return {k: v for k, v in metadata.items() if is_scalar(v)}
