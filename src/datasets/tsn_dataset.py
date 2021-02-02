@@ -3,6 +3,9 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Set
+
+
 
 import numpy as np
 import torch.utils.data
@@ -46,7 +49,9 @@ class TsnDataset(torch.utils.data.Dataset):
         self.transform = transform
         self.random_shift = random_shift
         self.test_mode = test_mode
-        self.drop_non_scalar_metadata = drop_non_scalar_metadata
+        if drop_non_scalar_metadata:
+            self.dataset = self._drop_non_scalar_metadata(dataset)
+
 
     def __getitem__(self, index):
         record = self.dataset.video_records[index]
@@ -70,8 +75,6 @@ class TsnDataset(torch.utils.data.Dataset):
         if self.transform is not None:
             images = self.transform(images)
         metadata = record.metadata
-        if self.drop_non_scalar_metadata:
-            metadata = self._remove_non_scalar_values(metadata)
         return images, metadata
 
     def _sample_indices(self, record: VideoRecord):
@@ -123,12 +126,26 @@ class TsnDataset(torch.utils.data.Dataset):
                     p += 1
         return seg_idxs
 
-    def _remove_non_scalar_values(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
-        def is_scalar(v: Any):
+    def _drop_non_scalar_metadata(self, dataset: VideoDataset):
+        def not_scalar(v: Any):
             if isinstance(v, (tuple, list)):
-                return False
+                return True
             if v is None:
-                return False 
-            return True
+                return True
+            return False
 
-        return {k: v for k, v in metadata.items() if is_scalar(v)}
+        def which_invalid(metadata: Dict[str, Any], to_drop: Set[str]):
+            for k,v in metadata.items():
+                if not_scalar(v): to_drop.add(k)
+            return to_drop
+
+        keys_to_drop = set()
+        for record in dataset.video_records:
+            metadata = record.metadata
+            keys_to_drop = which_invalid(metadata, keys_to_drop)
+        for i in range(len(dataset.video_records)):
+            for k in keys_to_drop:
+                dataset.video_records[i].metadata.pop(k)
+        return dataset
+
+ 
