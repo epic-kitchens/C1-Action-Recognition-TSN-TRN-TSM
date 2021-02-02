@@ -29,7 +29,7 @@ class TsnDataset(torch.utils.data.Dataset):
         transform: Callable = None,
         random_shift: bool = True,
         test_mode: bool = False,
-        drop_non_scalar_metadata: bool = False,
+        drop_problematic_metadata: bool = False,
     ):
         """
 
@@ -40,7 +40,7 @@ class TsnDataset(torch.utils.data.Dataset):
             transform: A applied to the list of frames sampled from the clip
             random_shift:
             test_mode: Whether to return center sampled frames from each segment.
-            drop_non_scalar_metadata: Whether to drop any non-scalar metadata so that
+            drop_problematic_metadata: Whether to drop any non-scalar or None metadata so that
                 the default pytorch collation function can be used.
         """
         self.dataset = dataset
@@ -49,8 +49,8 @@ class TsnDataset(torch.utils.data.Dataset):
         self.transform = transform
         self.random_shift = random_shift
         self.test_mode = test_mode
-        if drop_non_scalar_metadata:
-            self.dataset = self._drop_non_scalar_metadata(dataset)
+        if drop_problematic_metadata:
+            self._drop_problematic_metadata()
 
 
     def __getitem__(self, index):
@@ -126,26 +126,21 @@ class TsnDataset(torch.utils.data.Dataset):
                     p += 1
         return seg_idxs
 
-    def _drop_non_scalar_metadata(self, dataset: VideoDataset):
-        def not_scalar(v: Any):
-            if isinstance(v, (tuple, list)):
-                return True
-            if v is None:
+    def _drop_problematic_metadata(self):
+        """Drops metadata whose value is a non-scalar value or ``None``"""
+        def is_problematic_value(v: Any):
+            if isinstance(v, (tuple, list)) or v is None:
                 return True
             return False
 
-        def which_invalid(metadata: Dict[str, Any], to_drop: Set[str]):
-            for k,v in metadata.items():
-                if not_scalar(v): to_drop.add(k)
-            return to_drop
+        keys_to_drop = { 
+            key
+            for record in self.dataset.video_records
+            for key, val in record.metadata.items()
+            if is_problematic_value(val)
+        }
 
-        keys_to_drop = set()
-        for record in dataset.video_records:
-            metadata = record.metadata
-            keys_to_drop = which_invalid(metadata, keys_to_drop)
-        for i in range(len(dataset.video_records)):
+        for i in range(len(self.dataset.video_records)):
             for k in keys_to_drop:
-                dataset.video_records[i].metadata.pop(k)
-        return dataset
-
+                self.dataset.video_records[i].metadata.pop(k)
  
