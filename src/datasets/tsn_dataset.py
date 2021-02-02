@@ -3,6 +3,9 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Set
+
+
 
 import numpy as np
 import torch.utils.data
@@ -26,7 +29,7 @@ class TsnDataset(torch.utils.data.Dataset):
         transform: Callable = None,
         random_shift: bool = True,
         test_mode: bool = False,
-        drop_non_scalar_metadata: bool = False,
+        drop_problematic_metadata: bool = False,
     ):
         """
 
@@ -37,7 +40,7 @@ class TsnDataset(torch.utils.data.Dataset):
             transform: A applied to the list of frames sampled from the clip
             random_shift:
             test_mode: Whether to return center sampled frames from each segment.
-            drop_non_scalar_metadata: Whether to drop any non-scalar metadata so that
+            drop_problematic_metadata: Whether to drop any non-scalar or None metadata so that
                 the default pytorch collation function can be used.
         """
         self.dataset = dataset
@@ -46,7 +49,9 @@ class TsnDataset(torch.utils.data.Dataset):
         self.transform = transform
         self.random_shift = random_shift
         self.test_mode = test_mode
-        self.drop_non_scalar_metadata = drop_non_scalar_metadata
+        if drop_problematic_metadata:
+            self._drop_problematic_metadata()
+
 
     def __getitem__(self, index):
         record = self.dataset.video_records[index]
@@ -70,8 +75,6 @@ class TsnDataset(torch.utils.data.Dataset):
         if self.transform is not None:
             images = self.transform(images)
         metadata = record.metadata
-        if self.drop_non_scalar_metadata:
-            metadata = self._remove_non_scalar_values(metadata)
         return images, metadata
 
     def _sample_indices(self, record: VideoRecord):
@@ -123,10 +126,21 @@ class TsnDataset(torch.utils.data.Dataset):
                     p += 1
         return seg_idxs
 
-    def _remove_non_scalar_values(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
-        def is_scalar(v: Any):
-            if isinstance(v, (tuple, list)):
-                return False
-            return True
+    def _drop_problematic_metadata(self):
+        """Drops metadata whose value is a non-scalar value or ``None``"""
+        def is_problematic_value(v: Any):
+            if isinstance(v, (tuple, list)) or v is None:
+                return True
+            return False
 
-        return {k: v for k, v in metadata.items() if is_scalar(v)}
+        keys_to_drop = { 
+            key
+            for record in self.dataset.video_records
+            for key, val in record.metadata.items()
+            if is_problematic_value(val)
+        }
+
+        for i in range(len(self.dataset.video_records)):
+            for k in keys_to_drop:
+                self.dataset.video_records[i].metadata.pop(k)
+ 

@@ -102,7 +102,7 @@ class EpicActionRecogintionDataModule(pl.LightningDataModule):
             num_segments=frame_count,
             segment_length=self.cfg.data.segment_length,
             transform=self.train_transform,
-            drop_non_scalar_metadata=True,
+            drop_problematic_metadata=True,
         )
         if self.cfg.data.get("train_on_val", False):
             LOG.info("Training on training set + validation set")
@@ -114,7 +114,7 @@ class EpicActionRecogintionDataModule(pl.LightningDataModule):
                         num_segments=frame_count,
                         segment_length=self.cfg.data.segment_length,
                         transform=self.train_transform,
-                        drop_non_scalar_metadata=True,
+                        drop_problematic_metadata=True,
                     ),
                 ]
             )
@@ -137,7 +137,7 @@ class EpicActionRecogintionDataModule(pl.LightningDataModule):
             segment_length=self.cfg.data.segment_length,
             transform=self.test_transform,
             test_mode=True,
-            drop_non_scalar_metadata=True,
+            drop_problematic_metadata=True,
         )
         LOG.info(f"Validation dataset size: {len(dataset)}")
         return DataLoader(
@@ -157,7 +157,7 @@ class EpicActionRecogintionDataModule(pl.LightningDataModule):
             segment_length=self.cfg.data.segment_length,
             transform=self.test_transform,
             test_mode=True,
-            drop_non_scalar_metadata=True,
+            drop_problematic_metadata=True,
         )
         LOG.info(f"Test dataset size: {len(dataset)}")
         return DataLoader(
