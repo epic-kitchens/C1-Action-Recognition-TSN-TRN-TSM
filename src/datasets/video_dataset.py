@@ -28,7 +28,6 @@ class VideoDataset(Dataset, ABC):
     the number of frames per video, which we can't do with the standard
     torch.utils.data.Dataset.
     """
-
     @property
     def video_records(self) -> List[VideoRecord]:
         raise NotImplementedError()

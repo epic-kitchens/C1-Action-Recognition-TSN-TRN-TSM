@@ -29,7 +29,6 @@ class TsnDataset(torch.utils.data.Dataset):
         transform: Callable = None,
         random_shift: bool = True,
         test_mode: bool = False,
-        drop_problematic_metadata: bool = False,
     ):
         """
 
@@ -40,8 +39,6 @@ class TsnDataset(torch.utils.data.Dataset):
             transform: A applied to the list of frames sampled from the clip
             random_shift:
             test_mode: Whether to return center sampled frames from each segment.
-            drop_problematic_metadata: Whether to drop any non-scalar or None metadata so that
-                the default pytorch collation function can be used.
         """
         self.dataset = dataset
         self.num_segments = num_segments
@@ -49,8 +46,6 @@ class TsnDataset(torch.utils.data.Dataset):
         self.transform = transform
         self.random_shift = random_shift
         self.test_mode = test_mode
-        if drop_problematic_metadata:
-            self._drop_problematic_metadata()
 
 
     def __getitem__(self, index):
@@ -126,21 +121,4 @@ class TsnDataset(torch.utils.data.Dataset):
                     p += 1
         return seg_idxs
 
-    def _drop_problematic_metadata(self):
-        """Drops metadata whose value is a non-scalar value or ``None``"""
-        def is_problematic_value(v: Any):
-            if isinstance(v, (tuple, list)) or v is None:
-                return True
-            return False
 
-        keys_to_drop = { 
-            key
-            for record in self.dataset.video_records
-            for key, val in record.metadata.items()
-            if is_problematic_value(val)
-        }
-
-        for i in range(len(self.dataset.video_records)):
-            for k in keys_to_drop:
-                self.dataset.video_records[i].metadata.pop(k)
- 

@@ -1,7 +1,7 @@
 import logging
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any
+from typing import Any, Set
 from typing import Callable
 from typing import cast
 from typing import Dict
@@ -36,7 +36,9 @@ class GulpVideoRecord(VideoRecord):
         return self._metadata
 
     def __init__(
-        self, gulp_id: str, gulp_metadata_dict: Dict[str, Any],
+        self,
+        gulp_id: str,
+        gulp_metadata_dict: Dict[str, Any],
     ):
         self._metadata = gulp_metadata_dict
         self.gulp_index = gulp_id
@@ -52,6 +54,7 @@ class EpicVideoDataset(VideoDataset):
         gulp_path: Path,
         sample_transform: Optional[Callable[[PIL.Image.Image], FramesTypeVar]] = None,
         filter_fn: Optional[Callable[[str], bool]] = None,
+        drop_problematic_metadata: bool = True,
     ):
         """
 
@@ -61,6 +64,9 @@ class EpicVideoDataset(VideoDataset):
             filter_fn: A callable that is used to remove examples from the dataset.
                 It should return whether or not the given sample (by id) should be
                 kept or not.
+            drop_problematic_metadata: Drop metadata entries that are non-scalar or
+                have ``None`` values which cause the default pytorch collation function
+                to error.
         """
         super().__init__()
         assert gulp_path.exists(), "Could not find the path {}".format(gulp_path)
@@ -70,13 +76,15 @@ class EpicVideoDataset(VideoDataset):
             self.sample_transform = lambda x: x
         else:
             self.sample_transform = sample_transform
+        self._drop_problematic_metadata = drop_problematic_metadata
         self._video_records = self._read_video_records(
             self.gulp_dir.merged_meta_dict, filter_fn
         )
+        self._video_records_list: List[VideoRecord] = list(self._video_records.values())
 
     @property
     def video_records(self) -> List[VideoRecord]:
-        return list(self._video_records.values())
+        return self._video_records_list
 
     def load_frames(
         self, record: VideoRecord, indices: List[int]
@@ -95,7 +103,9 @@ class EpicVideoDataset(VideoDataset):
         return len(self._video_records)
 
     def _read_video_records(
-        self, gulp_dir_meta_dict, filter_fn: Optional[Callable[[str], bool]],
+        self,
+        gulp_dir_meta_dict,
+        filter_fn: Optional[Callable[[str], bool]],
     ) -> Dict[str, GulpVideoRecord]:
         video_records = OrderedDict()
         dropped = 0
@@ -116,7 +126,31 @@ class EpicVideoDataset(VideoDataset):
                 dropped += 1
         if dropped > 0:
             LOG.info(f"Dropped {dropped}/{len(gulp_dir_meta_dict)} examples")
+        if self._drop_problematic_metadata:
+            self._filter_problematic_metadata_fields(video_records)
         return video_records
+
+    def _filter_problematic_metadata_fields(
+        self, video_records: Dict[Any, VideoRecord]
+    ) -> None:
+        """Drops metadata whose value is a non-scalar value or ``None``"""
+        problematic_fields = self._determine_problematic_fields(video_records)
+        for record in video_records.values():
+            for field in problematic_fields:
+                del record.metadata[field]
+
+    def _determine_problematic_fields(
+        self, video_records: Dict[Any, VideoRecord]
+    ) -> Set[str]:
+        def is_problematic_value(v: Any):
+            return isinstance(v, (tuple, list)) or v is None
+
+        problematic_fields = set()
+        for record in video_records.values():
+            for k, v in record.metadata.items():
+                if is_problematic_value(v):
+                    problematic_fields.add(k)
+        return problematic_fields
 
     def _sample_video_at_index(
         self, record: GulpVideoRecord, index: int
