@@ -52,11 +52,12 @@ dataloading performance, however this is an optional step. (see
  for more details)
 
 ```bash
-# The following steps are taken from
+# The following steps are based on
 # https://docs.fast.ai/performance.html#installation
 
-$ conda uninstall -y --force jpeg libtiff pillow
-$ conda install -y -c conda-forge libjpeg-turbo gxx_linux-64
+$ conda install -y -c conda-forge gxx_linux-64 
+$ conda uninstall -y --force jpeg libtiff
+$ conda install -y -c conda-forge libjpeg-turbo --no-deps
 $ pip uninstall -y pillow
 $ export CXX=x86_64-conda-linux-gnu-g++
 $ export CC=x86_64-conda-linux-gnu-gcc
