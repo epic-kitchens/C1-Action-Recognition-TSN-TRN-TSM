@@ -61,7 +61,7 @@ $ conda install -y -c conda-forge libjpeg-turbo --no-deps
 $ pip uninstall -y pillow
 $ export CXX=x86_64-conda-linux-gnu-g++
 $ export CC=x86_64-conda-linux-gnu-gcc
-$ CFLAGS="${CFLAGS} -mavx2" pip install --upgrade --no-cache-dir --force-reinstall --no-binary :all: --compile pillow-simd
+$ CFLAGS="$CFLAGS -mavx2" pip install --upgrade --no-cache-dir --force-reinstall --no-binary :all: --compile pillow-simd
 
 # Make sure Pillow doesn't get reinstalled
 $ conda install -c conda-forge jpeg libtiff
