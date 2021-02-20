@@ -17,6 +17,9 @@ This repo contains:
 - For TBN see https://github.com/ekazakos/temporal-binding-network
 - For SlowFast see https://github.com/epic-kitchens/epic-kitchens-slowfast
 
+## News
+*2021/02/20* - It was pointed out in [Issue 6](https://github.com/epic-kitchens/C1-Action-Recognition-TSN-TRN-TSM/issues/6) that our checkpoints have the mean and standard deviation for data preprocessing set to the same value (the ImageNet mean). We have retrained the networks with the mean set to the ImageNet mean and the std set to the ImageNet std and found that we observed worse results for all models (TSN/TRN/TSM) (see [Issue 8](https://github.com/epic-kitchens/C1-Action-Recognition-TSN-TRN-TSM/issues/8) for details). Consequently, we will retain our original checkpoints that yield a higher accuracy that were trained with `mean = [0.485, 0.456, 0.406]` and `std = [0.485, 0.456, 0.406]`.
+
 ## Table of Contents
 * [Environment setup](#environment-setup)
 * [Prep data](#prep-data)
