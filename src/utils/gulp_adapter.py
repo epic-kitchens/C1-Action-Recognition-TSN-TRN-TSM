@@ -5,8 +5,8 @@ from typing import Iterator
 from typing import List
 
 import pandas as pd
-from gulpio.adapters import AbstractDatasetAdapter
-from gulpio.utils import resize_images
+from gulpio2.adapters import AbstractDatasetAdapter
+from gulpio2.utils import resize_images
 
 
 Result = Dict[str, Any]

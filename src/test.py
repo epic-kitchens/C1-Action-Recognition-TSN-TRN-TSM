@@ -1,12 +1,18 @@
+from collections import defaultdict
+
 import argparse
 import logging
 import os
+import pickle
 from pathlib import Path
 
 import colorlog
 import torch
+import numpy as np
 from omegaconf import OmegaConf
-from pytorch_lightning import Trainer
+from pytorch_lightning import Callback, Trainer
+from typing import Any, Dict, List, Sequence, Union
+
 from systems import EpicActionRecogintionDataModule
 from systems import EpicActionRecognitionSystem
 
@@ -37,6 +43,40 @@ parser.add_argument(
 LOG = logging.getLogger("test")
 
 
+class ResultsSaver(Callback):
+    def __init__(self):
+        super().__init__()
+        self.results: Dict[str, Dict[str, List[Any]]] = dict()
+
+    def on_test_batch_end(
+        self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
+    ):
+        self._store_batch_results("test", outputs)
+
+    def _store_batch_results(
+        self, dataset_name: str, batch_outputs: Dict[str, Sequence[Any]]
+    ):
+        if dataset_name not in self.results:
+            self.results[dataset_name] = {k: [] for k in batch_outputs.keys()}
+
+        for k, vs in batch_outputs.items():
+            if isinstance(vs, torch.Tensor):
+                vs = vs.detach().cpu().numpy()
+            self.results[dataset_name][k].extend(vs)
+
+    def save_results(self, dataset_name: str, filepath: Union[str, Path]):
+        filepath = Path(filepath)
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        results_dict = self.results[dataset_name]
+        new_results_dict = {
+            k: np.stack(vs)
+            for k, vs in results_dict.items()
+        }
+
+        with open(filepath, "wb") as f:
+            pickle.dump(new_results_dict, f)
+
+
 def main(args):
     logging.basicConfig(level=logging.INFO)
 
@@ -60,7 +100,13 @@ def main(args):
     system = EpicActionRecognitionSystem(cfg)
     system.load_state_dict(ckpt["state_dict"])
     if not cfg.get("log_graph", True):
-        system.example_input_array = None
+        # MTRN can't be traced due to the model stochasticity so causes a JIT tracer
+        # error, we allow you to prevent the tracer from running to log the graph when
+        # the summary writer is created
+        try:
+            delattr(system, "example_input_array")
+        except AttributeError:
+            pass
 
     if args.n_frames is not None:
         cfg.data.test_frame_count = args.n_frames
@@ -70,9 +116,9 @@ def main(args):
         data_dir_key = f"{args.split}_gulp_dir"
         cfg.data[data_dir_key] = args.datadir
 
-    # Since pytorch-lightning can't support writing results when using DP or DDP
-    LOG.info("Disabling distributed backend")
-    cfg.trainer.distributed_backend = None
+    # Since we don't support writing results when using DP or DDP
+    LOG.info("Disabling DP/DDP")
+    cfg.trainer.accelerator = None
 
     n_gpus = 1
     LOG.info(f"Overwriting number of GPUs to {n_gpus}")
@@ -88,8 +134,11 @@ def main(args):
         raise ValueError(
             f"Split {args.split!r} is not a recognised dataset split to " f"test on."
         )
-    trainer = Trainer(**cfg.trainer)
+
+    saver = ResultsSaver()
+    trainer = Trainer(**cfg.trainer, callbacks=[saver])
     trainer.test(system, test_dataloaders=dataloader)
+    saver.save_results("test", args.results)
 
 
 if __name__ == "__main__":

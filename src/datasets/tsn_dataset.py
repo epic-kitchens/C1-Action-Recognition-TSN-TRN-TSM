@@ -1,10 +1,6 @@
 import logging
-from typing import Any
 from typing import Callable
-from typing import Dict
 from typing import List
-from typing import Set
-
 
 
 import numpy as np
@@ -14,6 +10,11 @@ from .video_dataset import VideoDataset
 from .video_dataset import VideoRecord
 
 LOG = logging.getLogger(__name__)
+
+# line_profiler injects a "profile" into __builtins__. When not running under
+# line_profiler we need to inject our own passthrough
+if type(__builtins__) is not dict or "profile" not in __builtins__:
+    profile = lambda f: f
 
 
 class TsnDataset(torch.utils.data.Dataset):
@@ -47,7 +48,6 @@ class TsnDataset(torch.utils.data.Dataset):
         self.random_shift = random_shift
         self.test_mode = test_mode
 
-
     def __getitem__(self, index):
         record = self.dataset.video_records[index]
         if self.test_mode:
@@ -63,6 +63,7 @@ class TsnDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.dataset)
 
+    @profile
     def _get(self, record: VideoRecord, segment_start_idxs: List[int]):
         images = self.dataset.load_frames(
             record, self._get_frame_idxs(segment_start_idxs, record)
@@ -120,5 +121,3 @@ class TsnDataset(torch.utils.data.Dataset):
                 if p < record.num_frames:
                     p += 1
         return seg_idxs
-
-

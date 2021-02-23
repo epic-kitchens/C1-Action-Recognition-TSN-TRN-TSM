@@ -13,16 +13,13 @@ from datasets import EpicVideoDataset
 from datasets import EpicVideoFlowDataset
 from datasets import TsnDataset
 from omegaconf import DictConfig
-from pytorch_lightning import EvalResult
-from pytorch_lightning import TrainResult
-from pytorch_lightning.core.step_result import Result
 from torch import Tensor
 from torch.optim import SGD
 from torch.optim.lr_scheduler import MultiStepLR
 from torch.utils.data import ConcatDataset
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose
-from transforms import ExtractTimeFromChannel
+from transforms import ExtractTimeFromChannel, GroupNDarrayToPILImage
 from transforms import GroupCenterCrop
 from transforms import GroupMultiScaleCrop
 from transforms import GroupNormalize
@@ -102,7 +99,6 @@ class EpicActionRecogintionDataModule(pl.LightningDataModule):
             num_segments=frame_count,
             segment_length=self.cfg.data.segment_length,
             transform=self.train_transform,
-            drop_problematic_metadata=True,
         )
         if self.cfg.data.get("train_on_val", False):
             LOG.info("Training on training set + validation set")
@@ -114,7 +110,6 @@ class EpicActionRecogintionDataModule(pl.LightningDataModule):
                         num_segments=frame_count,
                         segment_length=self.cfg.data.segment_length,
                         transform=self.train_transform,
-                        drop_problematic_metadata=True,
                     ),
                 ]
             )
@@ -137,7 +132,6 @@ class EpicActionRecogintionDataModule(pl.LightningDataModule):
             segment_length=self.cfg.data.segment_length,
             transform=self.test_transform,
             test_mode=True,
-            drop_problematic_metadata=True,
         )
         LOG.info(f"Validation dataset size: {len(dataset)}")
         return DataLoader(
@@ -157,7 +151,6 @@ class EpicActionRecogintionDataModule(pl.LightningDataModule):
             segment_length=self.cfg.data.segment_length,
             transform=self.test_transform,
             test_mode=True,
-            drop_problematic_metadata=True,
         )
         LOG.info(f"Test dataset size: {len(dataset)}")
         return DataLoader(
@@ -170,23 +163,11 @@ class EpicActionRecogintionDataModule(pl.LightningDataModule):
 
     def _get_video_dataset(self, gulp_dir_path):
         if self.cfg.modality.lower() == "rgb":
-            return EpicVideoDataset(gulp_dir_path)
+            return EpicVideoDataset(gulp_dir_path, drop_problematic_metadata=True)
         elif self.cfg.modality.lower() == "flow":
-            return EpicVideoFlowDataset(gulp_dir_path)
+            return EpicVideoFlowDataset(gulp_dir_path, drop_problematic_metadata=True)
         else:
             raise ValueError(f"Unknown modality {self.cfg.modality!r}")
-
-    def prepare_data(self, *args, **kwargs):
-        # Implemented to appease mypy
-        pass
-
-    def transfer_batch_to_device(self, batch: Any, device: torch.device) -> Any:
-        # Implemented to appease mypy
-        pass
-
-    def setup(self, stage: Optional[str] = None):
-        # Implemented to appease mypy
-        pass
 
 
 class EpicActionRecognitionSystem(pl.LightningModule):
@@ -231,43 +212,33 @@ class EpicActionRecognitionSystem(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         step_results = self._step(batch)
 
-        result = TrainResult(step_results["loss"])
-        self.log_metrics(result, step_results, "train")
-        return result
+        self.log_metrics(step_results, "train")
+        return step_results["loss"]
 
     def validation_step(self, batch, batch_idx):
         step_results = self._step(batch)
-        result = EvalResult(checkpoint_on=step_results["loss"])
-        self.log_metrics(result, step_results, "val")
-        return result
+        self.log_metrics(step_results, "val")
+        return step_results['loss']
 
     def test_step(self, batch, batch_idx):
         data, labels_dict = batch
         outputs = self.forward_tasks(data)
 
-        result = EvalResult()
-        filename = self.cfg.get("test.results_path", "./predictions.pt")
-
-        result.write_dict(
-            {
-                "verb_output": outputs["verb"],
-                "noun_output": outputs["noun"],
-                "narration_id": labels_dict["narration_id"],
-                "video_id": labels_dict["video_id"],
-            },
-            filename=filename,
-        )
-
-        return result
+        return {
+            "verb_output": outputs["verb"].detach().cpu().numpy(),
+            "noun_output": outputs["noun"].detach().cpu().numpy(),
+            "narration_id": labels_dict["narration_id"],
+            "video_id": labels_dict["video_id"],
+        }
 
     def log_metrics(
-        self, result: Result, step_results: Dict[str, float], step_type: str
+        self, step_results: Dict[str, float], step_type: str
     ) -> None:
-        result.log(f"loss/{step_type}", step_results["loss"])
+        self.log(f"loss/{step_type}", step_results["loss"])
         for task in ["verb", "noun"]:
-            result.log(f"{task}_loss/{step_type}", step_results[f"{task}_loss"])
+            self.log(f"{task}_loss/{step_type}", step_results[f"{task}_loss"])
             for k in (1, 5):
-                result.log(
+                self.log(
                     f"{task}_accuracy@{k}/{step_type}",
                     step_results[f"{task}_accuracy@{k}"],
                 )
