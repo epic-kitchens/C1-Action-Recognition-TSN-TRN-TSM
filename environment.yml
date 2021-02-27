@@ -27,6 +27,6 @@ dependencies:
     - imageio-ffmpeg==0.4.2
     - omegaconf==2.0.1
     - ipdb==0.13.3
-    - 'git+https://github.com/willprice/GulpIO2.git@d2e68d7854614cbd7c06fe2556fc7470a430d4ac'
+    - gulpio2==0.0.3
     - hydra_colorlog==1.0.0
     - moviepy==1.0.3
