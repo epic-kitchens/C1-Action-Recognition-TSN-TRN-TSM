@@ -4,12 +4,12 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - cudatoolkit=10.1
+  - cudatoolkit=11.0
   - ipykernel=5.3.4
   - ipython=7.18.1
   - numpy=1.19.1
   - pandas=1.1.1
-  - pillow=7.2.0
+  - pillow=8.1.0
   - pip=20.2.2
   - python=3.8.5
   - pytorch=1.7.1
@@ -18,7 +18,7 @@ dependencies:
   - scipy=1.5.2
   - setuptools=49.6.0
   - tensorboard=2.2.0
-  - torchvision=0.7.0
+  - torchvision=0.8.2
   - tqdm=4.48.2
   - yaml=0.2.5
   - pip:
