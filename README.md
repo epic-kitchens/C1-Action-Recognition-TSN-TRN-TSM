@@ -49,41 +49,6 @@ $ conda env create -n epic-models -f environment.yml
 $ conda activate epic-models
 ```
 
-We then suggest you replace the installation of Pillow with Pillow-SIMD to improve
-dataloading performance, however this is an optional step. (see
-[fastai docs](https://fastai1.fast.ai/performance.html#faster-image-processing)
- for more details)
-
-```bash
-# The following steps are based on
-# https://docs.fast.ai/performance.html#installation
-
-$ conda install -y -c conda-forge gxx_linux-64 
-$ conda uninstall -y --force jpeg libtiff
-$ conda install -y -c conda-forge libjpeg-turbo --no-deps
-$ pip uninstall -y pillow
-$ export CXX=x86_64-conda-linux-gnu-g++
-$ export CC=x86_64-conda-linux-gnu-gcc
-$ CFLAGS="$CFLAGS -mavx2" pip install --upgrade --no-cache-dir --force-reinstall --no-binary :all: --compile pillow-simd
-
-# Make sure Pillow doesn't get reinstalled
-$ conda install -c conda-forge jpeg libtiff
-```
-
-Check that Pillow-SIMD is installed, it should have a `.postX` suffix on the version
-number:
-
-```bash
-$ python -c 'import PIL; print(PIL.__version__)'
-7.0.0.post3
-```
-
-Check that Pillow-SIMD was built against libjpeg-turbo:
-
-```bash
-$ python -c 'import PIL.features; print(PIL.features.check_feature("libjpeg_turbo"))'
-True
-```
 
 ## Prep data
 
