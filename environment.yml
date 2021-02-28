@@ -4,21 +4,21 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - cudatoolkit=10.1
+  - cudatoolkit=11.0
   - ipykernel=5.3.4
   - ipython=7.18.1
   - numpy=1.19.1
   - pandas=1.1.1
-  - pillow=7.2.0
+  - pillow=8.1.0
   - pip=20.2.2
   - python=3.8.5
-  - pytorch=1.6.0
-  - pytorch-lightning=0.9.0
+  - pytorch=1.7.1
+  - pytorch-lightning=1.1.8
   - pyyaml=5.3.1
   - scipy=1.5.2
   - setuptools=49.6.0
   - tensorboard=2.2.0
-  - torchvision=0.7.0
+  - torchvision=0.8.2
   - tqdm=4.48.2
   - yaml=0.2.5
   - pip:
@@ -27,6 +27,6 @@ dependencies:
     - imageio-ffmpeg==0.4.2
     - omegaconf==2.0.1
     - ipdb==0.13.3
-    - gulpio==540.66
+    - gulpio2==0.0.3
     - hydra_colorlog==1.0.0
     - moviepy==1.0.3

@@ -11,7 +11,7 @@ from typing import TypeVar
 
 import numpy as np
 import PIL.Image
-from gulpio import GulpDirectory
+from gulpio2 import GulpDirectory
 
 from .video_dataset import VideoDataset
 from .video_dataset import VideoRecord
@@ -20,6 +20,11 @@ MetadataDict = Dict[str, Any]
 FramesTypeVar = TypeVar("FramesTypeVar")
 
 LOG = logging.getLogger(__name__)
+
+# line_profiler injects a "profile" into __builtins__. When not running under
+# line_profiler we need to inject our own passthrough
+if type(__builtins__) is not dict or "profile" not in __builtins__:
+    profile = lambda f: f
 
 
 class GulpVideoRecord(VideoRecord):
@@ -86,6 +91,7 @@ class EpicVideoDataset(VideoDataset):
     def video_records(self) -> List[VideoRecord]:
         return self._video_records_list
 
+    @profile
     def load_frames(
         self, record: VideoRecord, indices: List[int]
     ) -> List[FramesTypeVar]:
@@ -152,6 +158,7 @@ class EpicVideoDataset(VideoDataset):
                     problematic_fields.add(k)
         return problematic_fields
 
+    @profile
     def _sample_video_at_index(
         self, record: GulpVideoRecord, index: int
     ) -> List[PIL.Image.Image]:

@@ -5,7 +5,7 @@ from multiprocessing import cpu_count
 from pathlib import Path
 
 import pandas as pd
-from gulpio import GulpIngestor
+from gulpio2 import GulpIngestor
 from utils.gulp_adapter import EpicDatasetAdapter
 from utils.gulp_adapter import EpicFlowDatasetAdapter
 

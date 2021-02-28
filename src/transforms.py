@@ -9,6 +9,16 @@ import torchvision
 from PIL import Image
 from PIL import ImageOps
 
+# line_profiler injects a "profile" into __builtins__. When not running under
+# line_profiler we need to inject our own passthrough
+if type(__builtins__) is not dict or "profile" not in __builtins__:
+    profile = lambda f: f
+
+
+class GroupNDarrayToPILImage:
+    def __call__(self, imgs):
+        return [Image.fromarray(img) for img in imgs]
+
 
 class GroupRandomCrop:
     def __init__(self, size):
@@ -17,6 +27,7 @@ class GroupRandomCrop:
         else:
             self.size = size
 
+    @profile
     def __call__(self, img_group):
 
         w, h = img_group[0].size
@@ -41,6 +52,7 @@ class GroupCenterCrop:
     def __init__(self, size):
         self.worker = torchvision.transforms.CenterCrop(size)
 
+    @profile
     def __call__(self, img_group):
         return [self.worker(img) for img in img_group]
 
@@ -51,6 +63,7 @@ class GroupRandomHorizontalFlip:
     def __init__(self, is_flow=False):
         self.is_flow = is_flow
 
+    @profile
     def __call__(self, img_group, is_flow=False):
         v = random.random()
         if v < 0.5:
@@ -68,6 +81,7 @@ class GroupNormalize:
         self.mean = mean
         self.std = std
 
+    @profile
     def __call__(self, tensor):
         rep_mean = self.mean * (tensor.size()[0] // len(self.mean))
         rep_std = self.std * (tensor.size()[0] // len(self.std))
@@ -91,6 +105,7 @@ class GroupScale:
     def __init__(self, size, interpolation=Image.BILINEAR):
         self.worker = torchvision.transforms.Resize(size, interpolation)
 
+    @profile
     def __call__(self, img_group):
         return [self.worker(img) for img in img_group]
 
@@ -106,6 +121,7 @@ class GroupOverSample:
         else:
             self.scale_worker = None
 
+    @profile
     def __call__(self, img_group):
 
         if self.scale_worker is not None:
@@ -149,6 +165,7 @@ class GroupMultiScaleCrop:
         )
         self.interpolation = Image.BILINEAR
 
+    @profile
     def __call__(self, img_group):
         im_size = img_group[0].size
 
@@ -239,6 +256,7 @@ class GroupRandomSizedCrop:
         self.size = size
         self.interpolation = interpolation
 
+    @profile
     def __call__(self, img_group):
         for attempt in range(10):
             area = img_group[0].size[0] * img_group[0].size[1]
@@ -281,6 +299,7 @@ class Stack:
     def __init__(self, bgr=False):
         self.bgr = bgr
 
+    @profile
     def __call__(self, img_group):
         if img_group[0].mode == "L":
             return np.concatenate([np.expand_dims(x, 2) for x in img_group], axis=2)
@@ -301,6 +320,7 @@ class ToTorchFormatTensor:
     def __init__(self, div=True):
         self.div = div
 
+    @profile
     def __call__(self, pic):
         if isinstance(pic, np.ndarray):
             # handle numpy array
