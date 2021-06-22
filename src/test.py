@@ -96,6 +96,8 @@ def main(args):
     # exceptions
     cfg.data._root_gulp_dir = os.getcwd()  # set default root gulp dir to prevent
     # exceptions on instantiating the EpicActionRecognitionSystem
+    update_deprecated_cfg_options(cfg)
+
 
     system = EpicActionRecognitionSystem(cfg)
     system.load_state_dict(ckpt["state_dict"])
@@ -140,6 +142,15 @@ def main(args):
     trainer.test(system, test_dataloaders=dataloader)
     saver.save_results("test", args.results)
 
+
+def update_deprecated_cfg_options(cfg) -> None:
+    if 'trainer' in cfg:
+        if 'row_log_interval' in cfg.trainer:
+            cfg.trainer['log_every_n_steps'] = cfg.trainer['row_log_interval']
+            del cfg.trainer['row_log_interval']
+        if 'log_save_interval' in cfg.trainer:
+            cfg.trainer['flush_logs_every_n_steps'] = cfg.trainer['log_save_interval']
+            del cfg.trainer['log_save_interval']
 
 if __name__ == "__main__":
     main(parser.parse_args())
