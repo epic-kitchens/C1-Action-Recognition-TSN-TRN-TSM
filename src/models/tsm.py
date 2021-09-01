@@ -96,7 +96,7 @@ class TSM(nn.Module):
             if self.modality.lower() == "rgb":
                 sd = strip_module_prefix(
                     model_zoo.load_url(
-                        "https://file.lzhu.me/projects/tsm/models/"
+                        "https://hanlab.mit.edu/projects/tsm/models/"
                         "TSM_kinetics_RGB_resnet50_shift8_blockres_avg_segment8_e50.pth"
                     )["state_dict"]
                 )
@@ -111,7 +111,7 @@ class TSM(nn.Module):
             elif self.modality.lower() == "flow":
                 sd = strip_module_prefix(
                     model_zoo.load_url(
-                        "https://file.lzhu.me/projects/tsm/models/"
+                        "https://hanlab.mit.edu/projects/tsm/models/"
                         "TSM_kinetics_Flow_resnet50_shift8_blockres_avg_segment8_e50.pth"
                     )["state_dict"]
                 )
