@@ -73,7 +73,9 @@ class GroupRandomHorizontalFlip:
                     ret[i] = ImageOps.invert(
                         ret[i]
                     )  # invert flow pixel values when flipping
-        return img_group
+            return ret
+        else:
+            return img_group
 
 
 class GroupNormalize:
